@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Mapa BI · Regiões</title>
+
+  <!-- Leaflet -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster/dist/MarkerCluster.css" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster/dist/MarkerCluster.Default.css" />
+
+  <!-- Estilos próprios -->
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+
+<!-- ── Header com tabs ──────────────────────────────────── -->
+<header>
+  <div class="header-logo">RN Tintas <span>/ BI Regiões</span></div>
+  <nav>
+    <button class="tab-btn active" onclick="trocarTab('mapa', this)">Mapa</button>
+    <button class="tab-btn" onclick="trocarTab('editor', this)">Editar Regiões</button>
+  </nav>
+</header>
+
+<div class="app-body">
+
+  <!-- ── ABA: MAPA ─────────────────────────────────────── -->
+  <div id="tab-mapa" class="tab-content active">
+
+    <!-- Sidebar com filtro + stats -->
+    <aside class="sidebar">
+      <div>
+        <div class="sidebar-label">Filtrar por Região</div>
+        <select id="filtro" class="select-filtro" onchange="onFiltroChange(this.value)">
+          <option value="todas">Todas as Regiões</option>
+          <option value="1">1 – Sul de Minas</option>
+          <option value="2">2 – Polo Tecnológico</option>
+          <option value="3">3 – Triângulo</option>
+          <option value="4">4 – Campo das Vertentes</option>
+          <option value="5">5 – Circuito das Águas</option>
+        </select>
+      </div>
+
+      <div>
+        <div class="sidebar-label">Resumo de Vendas</div>
+        <div id="stats-container"></div>
+      </div>
+    </aside>
+
+    <!-- Mapa Leaflet -->
+    <div id="map"></div>
+  </div>
+
+  <!-- ── ABA: EDITOR ───────────────────────────────────── -->
+  <div id="tab-editor" class="tab-content">
+    <div class="editor-wrapper">
+
+      <!-- Toolbar do editor -->
+      <div class="editor-toolbar">
+        <h2>Editar Regiões</h2>
+
+        <input
+          type="text"
+          id="busca-cidade"
+          class="input-busca"
+          placeholder="Buscar cidade..."
+          oninput="filtrarTabela(this.value)"
+        />
+
+        <span id="badge-alteracoes"></span>
+
+        <div style="margin-left:auto; display:flex; gap:8px">
+          <button class="btn btn-ghost" onclick="restaurarPadrao()">Restaurar Padrão</button>
+          <button id="btn-salvar" class="btn btn-primary" onclick="salvarAlteracoes()">Salvar Alterações</button>
+        </div>
+      </div>
+
+      <!-- Nomes das regiões -->
+      <div class="nomes-wrapper">
+        <div class="sidebar-label" style="padding: 16px 24px 8px; margin:0">Nomes das Regiões</div>
+        <div id="nomes-regioes" class="nomes-grid"></div>
+      </div>
+
+      <!-- Tabela de cidades -->
+      <div class="table-container">
+        <table>
+          <thead>
+            <tr>
+              <th>Cidade</th>
+              <th>Região Atual</th>
+              <th>Vendas</th>
+              <th>Nova Região</th>
+            </tr>
+          </thead>
+          <tbody id="editor-tbody"></tbody>
+        </table>
+      </div>
+
+    </div>
+  </div>
+
+</div><!-- /app-body -->
+
+<!-- Libs externas -->
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://unpkg.com/leaflet.markercluster/dist/leaflet.markercluster.js"></script>
+<script src="https://unpkg.com/@turf/turf@6/turf.min.js"></script>
+
+<!-- Módulos do projeto (ordem importa: data → map/editor) -->
+<script src="js/data.js"></script>
+<script src="js/map.js"></script>
+<script src="js/editor.js"></script>
+
+<script>
+  /**
+   * Inicialização e controle das tabs.
+   * Mantido aqui por ser cola entre os módulos, não lógica de negócio.
+   */
+
+  // Inicia o mapa e renderiza dados
+  inicializarMapa();
+  renderMapa("todas");
+  atualizarStats("todas");
+
+  // Popula o editor ao abrir pela primeira vez
+  renderizarEditor();
+  renderizarNomes();
+
+  /** Atualiza o select de filtro com os nomes salvos */
+  function atualizarSelectFiltro() {
+    const sel = document.getElementById("filtro");
+    sel.innerHTML = `<option value="todas">Todas as Regiões</option>` +
+      [1,2,3,4,5].map(r =>
+        `<option value="${r}">${r} – ${NOMES_REGIOES[r]}</option>`
+      ).join("");
+  }
+
+  atualizarSelectFiltro();
+
+  /** Troca entre as abas Mapa e Editor */
+  function trocarTab(aba, btn) {
+    document.querySelectorAll(".tab-content").forEach((t) => t.classList.remove("active"));
+    document.querySelectorAll(".tab-btn").forEach((b) => b.classList.remove("active"));
+
+    document.getElementById(`tab-${aba}`).classList.add("active");
+    btn.classList.add("active");
+
+    // O Leaflet precisa de um resize quando fica visível novamente
+    if (aba === "mapa") {
+      setTimeout(() => map.invalidateSize(), 50);
+    }
+
+    // Recarrega a tabela caso dados tenham sido salvos
+    if (aba === "editor") {
+      renderizarEditor();
+    }
+  }
+
+  /** Callback do select de filtro na aba Mapa */
+  function onFiltroChange(valor) {
+    renderMapa(valor);
+    atualizarStats(valor);
+  }
+</script>
+
+</body>
+</html>

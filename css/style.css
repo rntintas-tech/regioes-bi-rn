@@ -1,0 +1,447 @@
+/* style.css — Mapa BI Regiões
+   Tema: dark dashboard industrial, fontes técnicas, cores neon por região
+*/
+
+@import url("https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Outfit:wght@300;400;500;600;700&display=swap");
+
+/* ── Variáveis ─────────────────────────────────────────── */
+:root {
+  --bg-base:    #080d14;
+  --bg-panel:   #0e1620;
+  --bg-surface: #141f2e;
+  --bg-hover:   #1a2840;
+  --border:     #1e3352;
+  --text-main:  #e2eaf5;
+  --text-muted: #5a7a9e;
+  --accent:     #38bdf8;
+  --font-body:  "Outfit", sans-serif;
+  --font-mono:  "DM Mono", monospace;
+  --radius:     10px;
+  --shadow:     0 4px 24px rgba(0,0,0,0.5);
+}
+
+/* ── Reset ─────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: var(--font-body);
+  background: var(--bg-base);
+  color: var(--text-main);
+  height: 100vh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ── Header / Tabs ─────────────────────────────────────── */
+header {
+  background: var(--bg-panel);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  padding: 0 24px;
+  gap: 32px;
+  height: 56px;
+  flex-shrink: 0;
+  z-index: 1000;
+}
+
+.header-logo {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--accent);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.header-logo span {
+  color: var(--text-muted);
+  font-weight: 400;
+}
+
+nav {
+  display: flex;
+  gap: 4px;
+  height: 100%;
+}
+
+.tab-btn {
+  font-family: var(--font-body);
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-muted);
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  padding: 0 16px;
+  cursor: pointer;
+  transition: color 0.2s, border-color 0.2s;
+  letter-spacing: 0.02em;
+}
+
+.tab-btn:hover { color: var(--text-main); }
+
+.tab-btn.active {
+  color: var(--accent);
+  border-bottom-color: var(--accent);
+}
+
+/* ── Layout principal ──────────────────────────────────── */
+.app-body {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+/* ── Sidebar (painel esquerdo do mapa) ─────────────────── */
+.sidebar {
+  width: 260px;
+  background: var(--bg-panel);
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  padding: 20px 16px;
+  gap: 20px;
+  overflow-y: auto;
+  flex-shrink: 0;
+}
+
+.sidebar-label {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--text-muted);
+  margin-bottom: 8px;
+}
+
+/* Select de filtro */
+.select-filtro {
+  width: 100%;
+  padding: 10px 12px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text-main);
+  font-family: var(--font-body);
+  font-size: 13px;
+  cursor: pointer;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.select-filtro:focus { border-color: var(--accent); }
+
+/* ── Cards de estatísticas ─────────────────────────────── */
+#stats-container { display: flex; flex-direction: column; gap: 10px; }
+
+.stat-card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-left: 3px solid;
+  border-radius: var(--radius);
+  padding: 12px 14px;
+  transition: background 0.2s;
+}
+
+.stat-card:hover { background: var(--bg-hover); }
+
+.stat-regiao {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin-bottom: 4px;
+}
+
+.stat-numero {
+  font-family: var(--font-mono);
+  font-size: 22px;
+  font-weight: 500;
+  line-height: 1.2;
+}
+
+.stat-detalhe {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-top: 3px;
+}
+
+/* ── Mapa ──────────────────────────────────────────────── */
+#map {
+  flex: 1;
+  height: calc(100vh - 56px); /* 56px = altura do header — garante que o Leaflet mede certo */
+  background: #e8e4dc;
+}
+
+/* ── Abas de conteúdo ──────────────────────────────────── */
+.tab-content { display: none; flex: 1; min-height: 0; overflow: hidden; }
+.tab-content.active { display: flex; }
+
+/* ── Aba Editor de Regiões ─────────────────────────────── */
+.editor-wrapper {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.editor-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 24px;
+  background: var(--bg-panel);
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+  flex-wrap: wrap;
+}
+
+.editor-toolbar h2 {
+  font-size: 15px;
+  font-weight: 600;
+  margin-right: 4px;
+}
+
+.input-busca {
+  padding: 8px 14px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text-main);
+  font-family: var(--font-body);
+  font-size: 13px;
+  width: 220px;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.input-busca:focus { border-color: var(--accent); }
+.input-busca::placeholder { color: var(--text-muted); }
+
+#badge-alteracoes {
+  display: none;
+  align-items: center;
+  background: #f59e0b22;
+  color: #f59e0b;
+  border: 1px solid #f59e0b44;
+  border-radius: 20px;
+  padding: 3px 12px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.btn {
+  padding: 8px 18px;
+  border-radius: var(--radius);
+  border: none;
+  font-family: var(--font-body);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.2s, transform 0.1s;
+}
+
+.btn:active { transform: scale(0.97); }
+
+.btn-primary {
+  background: var(--accent);
+  color: #080d14;
+}
+
+.btn-primary:hover { opacity: 0.85; }
+
+.btn-ghost {
+  background: var(--bg-surface);
+  color: var(--text-muted);
+  border: 1px solid var(--border);
+}
+
+.btn-ghost:hover { color: var(--text-main); }
+
+.btn-salvo {
+  background: #22c55e !important;
+  color: #080d14 !important;
+}
+
+/* ── Tabela ─────────────────────────────────────────────── */
+.table-container {
+  flex: 1;
+  overflow-y: auto;
+  padding: 0 24px 24px;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 16px;
+}
+
+thead th {
+  position: sticky;
+  top: 0;
+  background: var(--bg-panel);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--text-muted);
+  padding: 10px 14px;
+  text-align: left;
+  border-bottom: 1px solid var(--border);
+  z-index: 2;
+}
+
+tbody tr {
+  border-bottom: 1px solid var(--border);
+  transition: background 0.15s;
+}
+
+tbody tr:hover { background: var(--bg-hover); }
+
+tbody tr.linha-alterada {
+  background: #f59e0b0a;
+  border-left: 2px solid #f59e0b;
+}
+
+td {
+  padding: 10px 14px;
+  font-size: 13px;
+  vertical-align: middle;
+}
+
+.td-cidade { font-weight: 500; }
+
+.td-vendas {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.badge-regiao {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 20px;
+  border: 1px solid;
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.select-regiao {
+  padding: 6px 10px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text-main);
+  font-family: var(--font-body);
+  font-size: 12px;
+  cursor: pointer;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.select-regiao:focus { border-color: var(--accent); }
+
+/* ── Tooltips e Popups Leaflet ─────────────────────────── */
+.leaflet-tooltip {
+  background: var(--bg-panel) !important;
+  border: 1px solid var(--border) !important;
+  border-radius: var(--radius) !important;
+  padding: 10px 14px !important;
+  box-shadow: var(--shadow) !important;
+  color: var(--text-main) !important;
+}
+
+.tooltip-regiao { font-family: var(--font-body); min-width: 160px; }
+.tooltip-titulo { font-size: 13px; font-weight: 700; display: block; margin-bottom: 6px; }
+.tooltip-linha  { display: flex; justify-content: space-between; font-size: 12px; color: var(--text-muted); gap: 16px; }
+.tooltip-linha b { color: var(--text-main); font-family: var(--font-mono); }
+
+.popup-wrapper .leaflet-popup-content-wrapper {
+  background: var(--bg-panel) !important;
+  border: 1px solid var(--border) !important;
+  border-radius: var(--radius) !important;
+  box-shadow: var(--shadow) !important;
+  color: var(--text-main) !important;
+}
+
+.popup-wrapper .leaflet-popup-tip { background: var(--bg-panel) !important; }
+
+.popup-custom  { font-family: var(--font-body); }
+.popup-nome    { font-size: 14px; font-weight: 700; margin-bottom: 6px; }
+.popup-info    { font-size: 12px; color: var(--text-muted); margin-bottom: 4px; }
+.popup-vendas  { font-family: var(--font-mono); font-size: 12px; }
+
+/* ── Cluster customizado ───────────────────────────────── */
+.cluster-icon {
+  width: 36px;
+  height: 36px;
+  background: var(--bg-panel);
+  border: 2px solid var(--accent);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--accent);
+}
+
+/* ── Seção de nomes de regiões ─────────────────────────── */
+.nomes-wrapper {
+  background: var(--bg-panel);
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.nomes-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 8px;
+  padding: 0 24px 16px;
+}
+
+.nome-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.nome-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  border: 1px solid;
+  font-size: 11px;
+  font-weight: 700;
+  flex-shrink: 0;
+  font-family: var(--font-mono);
+}
+
+.input-nome {
+  flex: 1;
+  padding: 7px 12px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text-main);
+  font-family: var(--font-body);
+  font-size: 13px;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.input-nome:focus { border-color: var(--accent); }
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
