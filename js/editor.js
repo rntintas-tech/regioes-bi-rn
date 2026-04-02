@@ -106,15 +106,14 @@ async function salvarAlteracoes() {
   const btn = document.getElementById("btn-salvar");
   btn.textContent = "Salvando...";
   btn.disabled = true;
+  mostrarToast("saving");
 
   try {
-    // Coleta cidades com novas regiões
     const cidades = await carregarCidades();
     document.querySelectorAll(".select-regiao").forEach((sel) => {
       cidades[Number(sel.dataset.idx)].regiao = Number(sel.value);
     });
 
-    // Coleta nomes das regiões
     const nomes = {};
     document.querySelectorAll(".input-nome").forEach((inp) => {
       nomes[Number(inp.dataset.regiao)] = inp.value.trim() || NOMES_REGIOES_PADRAO[inp.dataset.regiao];
@@ -122,6 +121,7 @@ async function salvarAlteracoes() {
 
     await salvarDados(cidades, nomes);
 
+    mostrarToast("success");
     btn.textContent = "✓ Salvo!";
     btn.classList.add("btn-salvo");
     setTimeout(() => {
@@ -138,6 +138,7 @@ async function salvarAlteracoes() {
     atualizarSelectFiltro();
 
   } catch (err) {
+    mostrarToast("error");
     btn.textContent = "Erro ao salvar";
     btn.style.background = "#ef4444";
     setTimeout(() => {
@@ -164,9 +165,70 @@ function restaurarPadrao() {
 function filtrarTabela(termo) {
   const linhas = document.querySelectorAll("#editor-tbody tr");
   const lower = termo.toLowerCase();
-
   linhas.forEach((linha) => {
     const nome = linha.querySelector(".td-cidade").textContent.toLowerCase();
     linha.style.display = nome.includes(lower) ? "" : "none";
   });
+}
+
+/**
+ * Exibe um toast no canto da tela.
+ * estado: "saving" | "success" | "error"
+ */
+function mostrarToast(estado) {
+  let toast = document.getElementById("toast-salvar");
+
+  // Cria o elemento na primeira vez
+  if (!toast) {
+    toast = document.createElement("div");
+    toast.id = "toast-salvar";
+    document.body.appendChild(toast);
+  }
+
+  const config = {
+    saving: {
+      icon: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+               <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/>
+             </svg>`,
+      texto: "Salvando na planilha…",
+      cor: "var(--accent)",
+      spin: true,
+      duracao: null,
+    },
+    success: {
+      icon: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+               <polyline points="20 6 9 17 4 12"/>
+             </svg>`,
+      texto: "Salvo com sucesso!",
+      cor: "#22c55e",
+      spin: false,
+      duracao: 3000,
+    },
+    error: {
+      icon: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+               <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+             </svg>`,
+      texto: "Erro ao salvar. Tente novamente.",
+      cor: "#ef4444",
+      spin: false,
+      duracao: 4000,
+    },
+  };
+
+  const c = config[estado];
+
+  toast.innerHTML = `
+    <span class="toast-icon ${c.spin ? "spin" : ""}" style="color:${c.cor}">${c.icon}</span>
+    <span>${c.texto}</span>
+  `;
+  toast.style.setProperty("--toast-border", c.cor);
+  toast.classList.remove("toast-hide");
+  toast.classList.add("toast-show");
+
+  if (c.duracao) {
+    clearTimeout(toast._timer);
+    toast._timer = setTimeout(() => {
+      toast.classList.replace("toast-show", "toast-hide");
+    }, c.duracao);
+  }
 }

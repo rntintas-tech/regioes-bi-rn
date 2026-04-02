@@ -445,3 +445,37 @@ td {
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
 ::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
+
+/* ── Toast de feedback ─────────────────────────────────── */
+#toast-salvar {
+  position: fixed;
+  bottom: 28px;
+  right: 28px;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 20px;
+  background: var(--bg-panel);
+  border: 1px solid var(--toast-border, var(--accent));
+  border-radius: 10px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-main);
+  pointer-events: none;
+  transition: opacity 0.3s, transform 0.3s;
+}
+
+.toast-show { opacity: 1; transform: translateY(0); }
+.toast-hide { opacity: 0; transform: translateY(12px); }
+
+.toast-icon { display: flex; align-items: center; }
+
+.toast-icon.spin svg {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
