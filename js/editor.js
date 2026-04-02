@@ -26,9 +26,23 @@ function renderizarNomes() {
   });
 }
 
+/** Atualiza o badge de status da conexão com a planilha */
+function atualizarStatusConexao() {
+  const badge = document.getElementById("badge-api-status");
+  if (!badge) return;
+  if (apiConectada) {
+    badge.textContent = "Conectado à planilha";
+    badge.className = "badge-api-status conectado";
+  } else {
+    badge.textContent = "Sem conexão com a planilha — salvamento bloqueado";
+    badge.className = "badge-api-status desconectado";
+  }
+}
+
 /** Renderiza a tabela com todas as cidades e selects de região */
 async function renderizarEditor() {
   const cidades = await carregarCidades();
+  atualizarStatusConexao();
   const tbody = document.getElementById("editor-tbody");
   tbody.innerHTML = "";
 
@@ -69,10 +83,10 @@ async function renderizarEditor() {
 }
 
 /** Destaca a linha quando o usuário muda uma região */
-function marcarAlterado(select) {
+async function marcarAlterado(select) {
   const row = select.closest("tr");
   const idxOriginal = Number(select.dataset.idx);
-  const cidades = carregarCidades();
+  const cidades = await carregarCidades();
   const valorOriginal = cidades[idxOriginal].regiao;
   const valorNovo = Number(select.value);
 
@@ -86,9 +100,9 @@ function marcarAlterado(select) {
 }
 
 /** Conta e exibe quantas cidades foram alteradas (não salvas ainda) */
-function atualizarContadorAlteracoes() {
+async function atualizarContadorAlteracoes() {
   const selects = document.querySelectorAll(".select-regiao");
-  const cidades = carregarCidades();
+  const cidades = await carregarCidades();
   let count = 0;
 
   selects.forEach((sel) => {
@@ -103,6 +117,11 @@ function atualizarContadorAlteracoes() {
 
 /** Coleta selects de região + inputs de nome e salva tudo na API */
 async function salvarAlteracoes() {
+  if (!apiConectada) {
+    mostrarToast("offline");
+    return;
+  }
+
   const btn = document.getElementById("btn-salvar");
   btn.textContent = "Salvando...";
   btn.disabled = true;
@@ -212,6 +231,15 @@ function mostrarToast(estado) {
       cor: "#ef4444",
       spin: false,
       duracao: 4000,
+    },
+    offline: {
+      icon: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+               <line x1="1" y1="1" x2="23" y2="23"/><path d="M16.72 11.06A10.94 10.94 0 0 1 19 12.55M5 12.55a10.94 10.94 0 0 1 5.17-2.39M10.71 5.05A16 16 0 0 1 22.56 9M1.42 9a15.91 15.91 0 0 1 4.7-2.88M8.53 16.11a6 6 0 0 1 6.95 0M12 20h.01"/>
+             </svg>`,
+      texto: "Planilha não conectada. Recarregue a página e tente novamente.",
+      cor: "#f59e0b",
+      spin: false,
+      duracao: 5000,
     },
   };
 

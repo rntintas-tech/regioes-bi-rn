@@ -1,6 +1,7 @@
 /**
  * data.js
- * Lê via JSONP (contorna CORS no GET) e salva via POST no-cors.
+ * Lê via fetch (GET com CORS — Apps Script "Qualquer pessoa" suporta).
+ * Salva via POST no-cors.
  * Fallback para localStorage se API offline.
  */
 
@@ -24,51 +25,67 @@ const NOMES_REGIOES_PADRAO = {
 
 let NOMES_REGIOES = { ...NOMES_REGIOES_PADRAO };
 
-/**
- * Faz GET via JSONP — injeta uma tag <script> com ?callback=fn
- * Isso contorna CORS porque <script> não tem restrição de origem.
- */
-function fetchJSONP(url) {
-  return new Promise((resolve, reject) => {
-    const cb = "cb_" + Date.now();
-    const script = document.createElement("script");
+/** true apenas quando os dados vieram da planilha (não do cache/fallback) */
+let apiConectada = false;
 
-    window[cb] = (data) => {
-      delete window[cb];
-      script.remove();
-      resolve(data);
-    };
+/** Cache em memória para evitar múltiplas requisições JSONP simultâneas */
+let _fetchEmAndamento = null;
+let _cidadesCache = null;
+let _cacheTs = 0;
+const CACHE_TTL = 30_000; // 30 segundos
 
-    script.onerror = () => {
-      delete window[cb];
-      script.remove();
-      reject(new Error("JSONP falhou"));
-    };
-
-    script.src = `${url}?callback=${cb}`;
-    document.head.appendChild(script);
-
-    // Timeout de 8 segundos
-    setTimeout(() => {
-      if (window[cb]) {
-        delete window[cb];
-        script.remove();
-        reject(new Error("JSONP timeout"));
-      }
-    }, 8000);
+/** Faz GET via fetch — funciona porque Apps Script "Qualquer pessoa" retorna CORS */
+function fetchAPI(url) {
+  return fetch(url).then((res) => {
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    return res.json();
   });
 }
 
 /** Carrega dados da API (JSONP) com fallback para localStorage */
 async function carregarCidades() {
+  // Retorna cache se ainda válido (evita múltiplas requisições em paralelo)
+  const agora = Date.now();
+  if (_cidadesCache && (agora - _cacheTs) < CACHE_TTL) return _cidadesCache;
+
+  // Deduplica: se já há um fetch em andamento, aguarda o mesmo
+  if (_fetchEmAndamento) return _fetchEmAndamento;
+
+  _fetchEmAndamento = _buscarDaAPI();
+  const resultado = await _fetchEmAndamento;
+  _fetchEmAndamento = null;
+  return resultado;
+}
+
+async function _buscarDaAPI() {
   try {
-    const data = await fetchJSONP(API_URL);
+    const data = await fetchAPI(API_URL);
 
     if (data.nomes) Object.assign(NOMES_REGIOES, data.nomes);
-    localStorage.setItem("mapa_bi_backup", JSON.stringify(data));
 
-    return data.cidades;
+    if (data.cidades && data.cidades.length > 0) {
+      // Planilha acessível e com dados — fonte confiável
+      apiConectada = true;
+      _cidadesCache = data.cidades;
+      _cacheTs = Date.now();
+      localStorage.setItem("mapa_bi_backup", JSON.stringify(data));
+      return data.cidades;
+    }
+
+    // API respondeu mas planilha está vazia (abas ainda não criadas)
+    apiConectada = false;
+    _oferecerPopularPlanilha();
+
+    const backup = localStorage.getItem("mapa_bi_backup");
+    if (backup) {
+      const bd = JSON.parse(backup);
+      if (bd.nomes) Object.assign(NOMES_REGIOES, bd.nomes);
+      return bd.cidades;
+    }
+    return CIDADES_PADRAO;
+
   } catch (err) {
+    apiConectada = false;
     console.warn("API offline, usando cache local:", err);
     const backup = localStorage.getItem("mapa_bi_backup");
     if (backup) {
@@ -80,11 +97,37 @@ async function carregarCidades() {
   }
 }
 
+/** Exibe (uma única vez) a oferta de popular a planilha com dados padrão */
+let _populateOfertaFeita = false;
+async function _oferecerPopularPlanilha() {
+  if (_populateOfertaFeita) return;
+  _populateOfertaFeita = true;
+
+  const ok = confirm(
+    "A planilha está conectada mas ainda não tem dados.\n\n" +
+    "Deseja populá-la agora com as cidades e regiões padrão?"
+  );
+  if (!ok) return;
+
+  await salvarDados(CIDADES_PADRAO, NOMES_REGIOES_PADRAO);
+  apiConectada = true;
+
+  // Recarrega o editor e o mapa após popular
+  if (typeof renderizarEditor === "function") renderizarEditor();
+  if (typeof renderizarNomes === "function") renderizarNomes();
+  if (typeof renderMapa === "function") renderMapa("todas");
+  if (typeof atualizarStats === "function") atualizarStats("todas");
+}
+
 /**
  * Salva via POST com no-cors.
  * no-cors = o browser envia mas não lê a resposta (suficiente para gravar).
  */
 async function salvarDados(cidades, nomes) {
+  // Invalida o cache para que o próximo carregarCidades() busque da API
+  _cidadesCache = null;
+  _cacheTs = 0;
+
   localStorage.setItem("mapa_bi_backup", JSON.stringify({ cidades, nomes }));
   Object.assign(NOMES_REGIOES, nomes);
 

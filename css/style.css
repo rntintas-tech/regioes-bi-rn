@@ -479,3 +479,27 @@ td {
 @keyframes spin {
   to { transform: rotate(360deg); }
 }
+
+/* ── Badge de status da conexão com a planilha ─────────── */
+.badge-api-status {
+  display: block;
+  margin: 0 24px 12px;
+  padding: 8px 14px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 500;
+  font-family: var(--font-mono);
+  border: 1px solid;
+}
+
+.badge-api-status.conectado {
+  background: #22c55e18;
+  color: #22c55e;
+  border-color: #22c55e44;
+}
+
+.badge-api-status.desconectado {
+  background: #ef444418;
+  color: #ef4444;
+  border-color: #ef444444;
+}
