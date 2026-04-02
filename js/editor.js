@@ -27,8 +27,8 @@ function renderizarNomes() {
 }
 
 /** Renderiza a tabela com todas as cidades e selects de região */
-function renderizarEditor() {
-  const cidades = carregarCidades();
+async function renderizarEditor() {
+  const cidades = await carregarCidades();
   const tbody = document.getElementById("editor-tbody");
   tbody.innerHTML = "";
 
@@ -101,40 +101,52 @@ function atualizarContadorAlteracoes() {
   badge.style.display = count > 0 ? "inline-flex" : "none";
 }
 
-/** Coleta selects de região + inputs de nome e salva tudo no localStorage */
-function salvarAlteracoes() {
-  // Salva atribuição de cidades
-  const cidades = carregarCidades();
-  document.querySelectorAll(".select-regiao").forEach((sel) => {
-    cidades[Number(sel.dataset.idx)].regiao = Number(sel.value);
-  });
-  salvarCidades(cidades);
-
-  // Salva nomes das regiões
-  const nomes = {};
-  document.querySelectorAll(".input-nome").forEach((inp) => {
-    nomes[Number(inp.dataset.regiao)] = inp.value.trim() || NOMES_REGIOES_PADRAO[inp.dataset.regiao];
-  });
-  salvarNomes(nomes);
-
-  // Feedback visual
+/** Coleta selects de região + inputs de nome e salva tudo na API */
+async function salvarAlteracoes() {
   const btn = document.getElementById("btn-salvar");
-  btn.textContent = "✓ Salvo!";
-  btn.classList.add("btn-salvo");
-  setTimeout(() => {
-    btn.textContent = "Salvar Alterações";
-    btn.classList.remove("btn-salvo");
-  }, 2000);
+  btn.textContent = "Salvando...";
+  btn.disabled = true;
 
-  // Atualiza tudo
-  renderizarEditor();
-  renderizarNomes();
-  const regiaoAtiva = document.getElementById("filtro")?.value || "todas";
-  renderMapa(regiaoAtiva);
-  atualizarStats(regiaoAtiva);
+  try {
+    // Coleta cidades com novas regiões
+    const cidades = await carregarCidades();
+    document.querySelectorAll(".select-regiao").forEach((sel) => {
+      cidades[Number(sel.dataset.idx)].regiao = Number(sel.value);
+    });
 
-  // Atualiza o select de filtro com os novos nomes
-  atualizarSelectFiltro();
+    // Coleta nomes das regiões
+    const nomes = {};
+    document.querySelectorAll(".input-nome").forEach((inp) => {
+      nomes[Number(inp.dataset.regiao)] = inp.value.trim() || NOMES_REGIOES_PADRAO[inp.dataset.regiao];
+    });
+
+    await salvarDados(cidades, nomes);
+
+    btn.textContent = "✓ Salvo!";
+    btn.classList.add("btn-salvo");
+    setTimeout(() => {
+      btn.textContent = "Salvar Alterações";
+      btn.classList.remove("btn-salvo");
+      btn.disabled = false;
+    }, 2000);
+
+    renderizarEditor();
+    renderizarNomes();
+    const regiaoAtiva = document.getElementById("filtro")?.value || "todas";
+    renderMapa(regiaoAtiva);
+    atualizarStats(regiaoAtiva);
+    atualizarSelectFiltro();
+
+  } catch (err) {
+    btn.textContent = "Erro ao salvar";
+    btn.style.background = "#ef4444";
+    setTimeout(() => {
+      btn.textContent = "Salvar Alterações";
+      btn.style.background = "";
+      btn.disabled = false;
+    }, 3000);
+    console.error(err);
+  }
 }
 
 /** Reseta tudo para os dados padrão após confirmação */

@@ -89,8 +89,8 @@ function desenharPoligonos(cidadesFiltradas) {
 }
 
 /** Renderiza marcadores e polígonos para o filtro dado */
-function renderMapa(regiaoFiltro) {
-  const todasCidades = carregarCidades();
+async function renderMapa(regiaoFiltro) {
+  const todasCidades = await carregarCidades();
   const cidadesFiltradas =
     regiaoFiltro === "todas"
       ? todasCidades
@@ -120,7 +120,6 @@ function renderMapa(regiaoFiltro) {
 
   desenharPoligonos(cidadesFiltradas);
 
-  // Zoom automático ao filtrar uma região específica
   if (regiaoFiltro !== "todas" && poligonosAtivos.length > 0) {
     const bounds = L.featureGroup(poligonosAtivos).getBounds();
     map.fitBounds(bounds, { padding: [60, 60] });
@@ -128,8 +127,8 @@ function renderMapa(regiaoFiltro) {
 }
 
 /** Atualiza os cards de estatísticas no painel lateral */
-function atualizarStats(regiaoFiltro) {
-  const todasCidades = carregarCidades();
+async function atualizarStats(regiaoFiltro) {
+  const todasCidades = await carregarCidades();
   const container = document.getElementById("stats-container");
   container.innerHTML = "";
 
